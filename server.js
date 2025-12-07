@@ -62,53 +62,83 @@ const getTodayTomorrowStr = () => {
 };
 
 /**
- * 根據溫差指數與當日最高溫提供穿搭建議
- */
-/**
- * 根據溫差指數與當日氣溫提供穿搭建議
+ * 根據溫差指數與當日氣溫提供穿搭建議 (雙語)
  */
 const getClothingAdvice = (index, maxTemp = null, minTemp = null) => {
   // 預設沒有溫度資料時的邏輯
   if (maxTemp === null || minTemp === null) {
-    if (index >= 10) return "溫差極大！建議洋蔥式穿搭 (透氣內層+保暖外層)。";
-    if (index >= 6) return "日夜溫差稍大，建議攜帶薄外套。";
-    return "溫差舒適，依氣溫穿著即可。";
+    if (index >= 10) return {
+      zh: "溫差極大！建議洋蔥式穿搭 (透氣內層+保暖外層)。",
+      en: "Extreme temp diff! Onion-style dressing recommended."
+    };
+    if (index >= 6) return {
+      zh: "日夜溫差稍大，建議攜帶薄外套。",
+      en: "Large temp diff. Bringing a light jacket is advised."
+    };
+    return {
+      zh: "溫差舒適，依氣溫穿著即可。",
+      en: "Comfortable temp diff. Dress according to current temp."
+    };
   }
 
   const maxT = parseInt(maxTemp);
   const minT = parseInt(minTemp);
 
-  // 1. 高溫情境 (最低溫也很高，例如 26度以上) -> 即使溫差大，也不需要穿太多
+  // 1. 高溫情境 (最低溫也很高，例如 26度以上)
   if (minT >= 26) {
-    return "全天炎熱，雖有溫差但低溫仍高，建議穿著透氣散熱衣物，多補充水分。";
+    return {
+      zh: "全天炎熱，雖有溫差但低溫仍高，建議穿著透氣散熱衣物，多補充水分。",
+      en: "Hot all day! Wear breathable clothes and stay hydrated."
+    };
   }
 
-  // 2. 白天熱晚上涼 (例如 Max 30, Min 24)
+  // 2. 白天熱晚上涼
   if (maxT >= 30 && minT <= 25) {
-    return "白天炎熱但夜間稍涼，建議短袖搭配極薄外套，方便穿脫。";
+    return {
+      zh: "白天炎熱但夜間稍涼，建議短袖搭配極薄外套，方便穿脫。",
+      en: "Hot day, cool night. Short sleeves with a thin jacket recommended."
+    };
   }
 
-  // 3. 溫差大 (標準洋蔥式) - 排除掉上述真正熱的情況後，這裡就是真的會冷的溫差
+  // 3. 溫差大 (標準洋蔥式)
   if (index >= 10) {
-    return "溫差極大！早晚偏涼，建議洋蔥式穿搭 (透氣內層+保暖外層)。";
+    return {
+      zh: "溫差極大！早晚偏涼，建議洋蔥式穿搭 (透氣內層+保暖外層)。",
+      en: "Extreme temp diff! Onion-style dressing recommended."
+    };
   }
 
   // 4. 溫差稍大
   if (index >= 6) {
-    return "日夜溫差稍大，建議攜帶薄外套。";
+    return {
+      zh: "日夜溫差稍大，建議攜帶薄外套。",
+      en: "Large temp diff. A light jacket is recommended."
+    };
   }
 
   // 5. 溫差小，依據最高溫給建議
-  if (maxT > 30) return "天氣炎熱，建議穿著短袖衣物並注意防曬。";
-  if (maxT >= 25) return "氣候舒適，建議穿著短袖或薄長袖。";
-  if (maxT >= 20) return "稍有涼意，建議穿著薄長袖或搭配背心。";
-  return "氣溫較低，建議穿著保暖衣物與外套。";
+  if (maxT > 30) return {
+    zh: "天氣炎熱，建議穿著短袖衣物並注意防曬。",
+    en: "It's hot. Short sleeves and sun protection advised."
+  };
+  if (maxT >= 25) return {
+    zh: "氣候舒適，建議穿著短袖或薄長袖。",
+    en: "Comfortable weather. Short sleeves or light long sleeves."
+  };
+  if (maxT >= 20) return {
+    zh: "稍有涼意，建議穿著薄長袖或搭配背心。",
+    en: "Slightly cool. Long sleeves or a vest recommended."
+  };
+  return {
+    zh: "氣溫較低，建議穿著保暖衣物與外套。",
+    en: "It's cold. Warm clothes and a jacket are recommended."
+  };
 };
 
 /**
  * 取得指定縣市天氣預報
  * CWA 氣象資料開放平臺 API
- * 使用「一般天氣預報-今明 36 小時天氣預報」資料集 (F-C0032-001)
+ * 使用「一般天氣預報 - 今明 36 小時天氣預報」資料集(F - C0032-001)
  */
 const getWeatherByCity = async (req, res) => {
   try {
@@ -302,7 +332,7 @@ const getTempDiffByCity = async (req, res) => {
     }
 
     // 計算穿搭建議 - 此次一律抓取氣溫資料以提供精準建議
-    let advice = "";
+    let advice = { zh: "暫無建議", en: "No advice" }; // Default object
     if (dataFound) {
       let maxTemp = null;
       let minTemp = null;
@@ -344,7 +374,7 @@ const getTempDiffByCity = async (req, res) => {
         tempDiffIndex: dataFound ? maxDiffIndex : null,
         tempDiffWarning: maxDiffDesc,
         locationName: locationName,
-        clothingAdvice: advice,
+        clothingAdvice: advice, // Now an object {zh, en}
         desc: dataFound ? `最大溫差指數 ${maxDiffIndex}` : "暫無資料"
       },
     });
